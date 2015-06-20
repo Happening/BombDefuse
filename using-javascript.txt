@@ -1,0 +1,252 @@
+The default language for programming Happening plugins is CoffeeScript, which is compiled to Javascript at deploy-time by the Happening servers.
+
+If you prefer, it's also possible to write your plugins in Javascript instead of CoffeeScript. But please note that (most) documentation and examples will assume you're using CoffeeScript. Also, the Happening DOM API uses nested functions as a way to embed content in DOM elements. The CoffeeScript syntax makes this approach lead to very readable source code. In Javascript: not so much. So Javascripter, be ware!
+
+To get started using plain javascript for plugin development, just delete the .coffee files in the plugin directory, and create a `client.js` and a `server.js` instead. The snippets below will get you started. They are in fact just compiled versions of the .coffee files you just deleted.
+
+
+----------------- client.js ----------------- 
+    var Db, Dom, Modal, Obs, Page, Plugin, Server, Ui;
+    Db = require('db');
+    Dom = require('dom');
+    Modal = require('modal');
+    Obs = require('obs');
+    Plugin = require('plugin');
+    Page = require('page');
+    Server = require('server');
+    Ui = require('ui');
+    return exports.render = function() {
+      Dom.section(function() {
+        Dom.style({
+          Box: 'middle'
+        });
+        Ui.avatar(Plugin.userAvatar(), {
+          onTap: function() {
+            Plugin.userInfo();
+          }
+        });
+        Dom.div(function() {
+          Dom.style({
+            Flex: true
+          });
+          Dom.h2("Hello, developer");
+          Dom.text("This is an example Group App demonstrating some Happening API's.");
+        });
+      });
+      Dom.section(function() {
+        var clientCounter;
+        Dom.h2("Reactive dom");
+        Dom.userText("Group Apps are built using Javascript or CoffeeScript. User interfaces are drawn using an abstraction upon the web DOM you know and love. It works **reactively**: changes in the data model are automatically mapped to changes in the interface.");
+        clientCounter = Obs.create(0);
+        Dom.div(function() {
+          Ui.button("Increment me: " + clientCounter.get(), function() {
+            clientCounter.modify(function(v) {
+              return v + 1;
+            });
+          });
+        });
+      });
+      Dom.section(function() {
+        Dom.h2("Server side code");
+        Dom.text("Group Apps contain both code that is run on clients (phones, tablets, web browsers) and on Happening's servers. Server side code is invoked using RPC calls from a client, using timers or subscribing to user events (eg: a user leaves a group).");
+        Dom.div(function() {
+          Ui.button("Get server time", function() {
+            return Server.call('getTime', function(time) {
+              return Modal.show("The time on the server is: " + time);
+            });
+          });
+        });
+      });
+      Dom.section(function() {
+        Dom.h2("Synchronized data store");
+        Dom.text("A hierarchical data store is available that is automatically synchronized across all the devices of group members. You write to it from server side code.");
+        Dom.div(function() {
+          Ui.button("Synchronized counter: " + Db.shared.get('counter'), function() {
+            Server.call('incr');
+          });
+        });
+      });
+      Dom.section(function() {
+        Dom.h2("Use the source");
+        Dom.text("We're working on writing more documentation. For now, experiment by looking at the sources of Group Apps we've made available on GitHub.");
+        Dom.div(function() {
+          Ui.button("Visit github.com", function() {
+            Plugin.openUrl('https://github.com/happening');
+          });
+        });
+      });
+      return Dom.section(function() {
+        Dom.h2("Some examples");
+        Ui.button("Event API", function() {
+          Page.nav(function() {
+            Page.setTitle("Event API");
+            Dom.section(function() {
+              Dom.text("API to send push events (to users that are following your plugin).");
+              Ui.button("Push group event", function() {
+                Server.send('event');
+              });
+            });
+          });
+        });
+        Ui.button("Http API", function() {
+          Page.nav(function() {
+            Page.setTitle("Http API");
+            Dom.section(function() {
+              Dom.h2("Outgoing");
+              Dom.text("API to make HTTP requests from the Happening backend.");
+              Ui.button("Fetch HackerNews headlines", function() {
+                Server.send('fetchHn');
+              });
+              Db.shared.iterate('hn', function(article) {
+                Ui.item(function() {
+                  Dom.text(article.get('title'));
+                  Dom.onTap(function() {
+                    Plugin.openUrl(article.get('url'));
+                  });
+                });
+              });
+            });
+            Dom.section(function() {
+              Dom.h2("Incoming Http");
+              Dom.text("API to receive HTTP requests in the Happening backend.");
+              Dom.div(function() {
+                Dom.style({
+                  padding: '10px',
+                  margin: '3px 0',
+                  background: '#ddd',
+                  _userSelect: 'text'
+                });
+                return Dom.code("curl --data-binary 'your text' " + Plugin.inboundUrl());
+              });
+              Dom.div(function() {
+                Dom.style({
+                  padding: '10px',
+                  background: Plugin.colors().bar,
+                  color: Plugin.colors().barText
+                });
+                Dom.text(Db.shared.get('http') || "<awaiting request>");
+              });
+            });
+          });
+        });
+        Ui.button("Photo API", function() {
+          var Photo;
+          Photo = require('photo');
+          Page.nav(function() {
+            Page.setTitle("Photo API");
+            Dom.section(function() {
+              var photoKey;
+              Dom.text("API to show, upload or manipulate photos.");
+              Ui.bigButton("Pick photo", function() {
+                Photo.pick();
+              });
+              if (photoKey = Db.shared.get('photo')) {
+                (require('photoview')).render({
+                  key: photoKey
+                });
+              }
+            });
+          });
+        });
+        Ui.button("Plugin API", function() {
+          Page.nav(function() {
+            Page.setTitle("Plugin API");
+            Dom.section(function() {
+              Dom.text("API to get user or group context.");
+            });
+            Ui.list(function() {
+              var items, name, text, value;
+              items = {
+                "Plugin.agent": Plugin.agent(),
+                "Plugin.colors": Plugin.colors(),
+                "Plugin.groupAvatar": Plugin.groupAvatar(),
+                "Plugin.groupCode": Plugin.groupCode(),
+                "Plugin.groupId": Plugin.groupId(),
+                "Plugin.groupName": Plugin.groupName(),
+                "Plugin.userAvatar": Plugin.userAvatar(),
+                "Plugin.userId": Plugin.userId(),
+                "Plugin.userIsAdmin": Plugin.userIsAdmin(),
+                "Plugin.userName": Plugin.userName(),
+                "Plugin.users": Plugin.users.get(),
+                "Page.state": Page.state.get(),
+                "Dom.viewport": Dom.viewport.get()
+              };
+              for (name in items) {
+                value = items[name];
+                text = ("" + name + " = ") + JSON.stringify(value);
+                Ui.item(text.replace(/,/g, ', '));
+              }
+            });
+          });
+        });
+        Ui.button("Social API", function() {
+          Page.nav(function() {
+            Page.setTitle("Social API");
+            Dom.section(function() {
+              Dom.text("API to show comments or like boxes.");
+            });
+            require('social').renderComments();
+          });
+        });
+      });
+    };
+
+
+
+
+
+----------------- server.js ----------------- 
+    var Db;
+    Db = require('db');
+    exports.onInstall = function() {
+      return Db.shared.set('counter', 0);
+    };
+    exports.client_incr = function() {
+      log('hello world!');
+      return Db.shared.modify('counter', function(v) {
+        return v + 1;
+      });
+    };
+    exports.client_getTime = function(cb) {
+      return cb.reply(new Date());
+    };
+    exports.onHttp = function(request) {
+      Db.shared.set('http', request.data);
+      return request.respond(200, "Thanks for your input\n");
+    };
+    exports.client_fetchHn = function() {
+      var Http;
+      Http = require('http');
+      return Http.get({
+        url: 'https://news.ycombinator.com',
+        name: 'hnResponse'
+      });
+    };
+    exports.hnResponse = function(data) {
+      var all, id, m, re, title, url;
+      re = /<a href="(http[^"]+)">([^<]+)<\/a>/g;
+      id = 1;
+      while (id < 5 && (m = re.exec(data))) {
+        all = m[0], url = m[1], title = m[2];
+        log('hn headline', title, url);
+        if (url === 'http://www.ycombinator.com') {
+          continue;
+        }
+        Db.shared.set('hn', id, {
+          title: title,
+          url: url
+        });
+        id++;
+      }
+    };
+    exports.onPhoto = function(info) {
+      log('onPhoto', JSON.stringify(info));
+      Db.shared.set('photo', info.key);
+    };
+    return exports.client_event = function() {
+      var Event;
+      Event = require('event');
+      Event.create({
+        text: "Test event"
+      });
+    };
