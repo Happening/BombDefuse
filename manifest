@@ -1,3 +1,3 @@
-name: Example
-description: An example plugin. Use this as the base for your own glorious plugins!
+name: Bomb Defuse
+description: How many bombs can you defuse? Try and beat the highscore!
 api: 2
