@@ -1,6 +1,6 @@
-Example
+Bomb Defuse
 =======
-An example Group App for Happening.
+How many bombs can you defuse? Try and beat your friends!
 
 What's Happening?
 -----------------

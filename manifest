@@ -1,3 +1,5 @@
 name: Bomb Defuse
-description: How many bombs can you defuse? Try and beat the highscore!
+description: How many bombs can you defuse? Try and beat your friends!
 api: 2
+store: 150
+single: true
